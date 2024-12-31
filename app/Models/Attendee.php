@@ -12,6 +12,7 @@ use App\Models\User;
 class Attendee extends Model
 {
    
+    protected $fillable = ['user_id'];
 
 
 

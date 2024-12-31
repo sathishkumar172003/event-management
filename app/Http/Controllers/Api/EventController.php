@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\EventResource;
 use App\Models\Event;
 use Illuminate\Http\Request;
 
@@ -13,8 +14,8 @@ class EventController extends Controller
      */
     public function index()
     {
-        $events = Event::all();
-        return response()->json($events);
+        $events = Event::with('user', 'attendees')->get();
+        return EventResource::collection($events);
     }
 
     /**
@@ -30,31 +31,41 @@ class EventController extends Controller
         ]);
 
         $new_event = Event::create([...$validated_data, 'user_id' => 1]);
-        return response()->json($new_event);
+        return new EventResource($new_event);
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Event $event)
     {
-        $event = Event::findOrFail($id);
-        return response()->json($event);
+        // $event = Event::findOrFail($id);
+        return new EventResource($event->load('user', 'attendees'));
     }
-
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, Event $event)
     {
-        //
+        // validate the data 
+        $validated_data = $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'description' => 'nullable|string',
+            'start_time' => 'sometimes|date',
+            'end_time'=> 'sometimes|date|after:start_time'
+        ]);
+        $event->update([
+            ...$validated_data
+        ]);
+        return new EventResource($event);
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Event $event)
     {
-        //
+        $event->delete();
+        return response()->json('', status: 204);
     }
 }
